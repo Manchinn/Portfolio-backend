@@ -7,7 +7,7 @@ const portfolioData = {
         name: "ชินกฤต (Chinnakrit Sripan)",
         title: "Frontend Developer / Full-stack Developer",
         bio: "นักพัฒนา React & Web Developer ที่มีความหลงใหลในการสร้างเว็บไซต์ที่สวยงามและใช้งานได้ดี",
-        shortBio: "Creating beautiful and functional web experiences",
+        shortBio: "My Portfolio Website to showcase my projects and skills",
         image: "https://placehold.co/400x400/000000/FFF?text=Profile",
         email: "chinnakrit.srp@gmail.com",
         phone: "+66 94 665 0259",
