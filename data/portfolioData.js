@@ -8,7 +8,7 @@ const portfolioData = {
         title: "Frontend Developer / Full-stack Developer",
         bio: "นักพัฒนา React & Web Developer ที่มีความหลงใหลในการสร้างเว็บไซต์ที่สวยงามและใช้งานได้ดี",
         shortBio: "My Portfolio Website to showcase my projects and skills",
-        image: "https://placehold.co/400x400/000000/FFF?text=Profile",
+        image: "/static/profile/profile2.jpeg",
         email: "chinnakrit.srp@gmail.com",
         phone: "+66 94 665 0259",
         location: "Thailand",

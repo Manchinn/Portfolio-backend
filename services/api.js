@@ -7,7 +7,21 @@ const router = express.Router();
 
 // Endpoint to get profile
 router.get('/profile', (req, res) => {
-    res.json({ success: true, data: portfolioData.profile });
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const image = portfolioData.profile.image;
+    const resolvedImage = (image && image.startsWith('http'))
+        ? image
+        : image
+            ? `${origin}${image.startsWith('/') ? '' : '/'}${image}`
+            : '';
+
+    res.json({
+        success: true,
+        data: {
+            ...portfolioData.profile,
+            image: resolvedImage
+        }
+    });
 });
 
 // Endpoint to get skills
