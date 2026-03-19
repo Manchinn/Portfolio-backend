@@ -5,6 +5,13 @@ import portfolioData, { getData } from '../data/portfolioData.js';
 
 const router = express.Router();
 
+// In-memory store for notification read state (Object.create(null) to prevent prototype pollution)
+const notificationReadState = Object.create(null);
+
+// In-memory store for todos
+const todos = [];
+let todoIdCounter = 1;
+
 // Helper to get language from query params or default to 'en'
 const getLanguage = (req) => {
     const lang = req.query.lang || req.headers['accept-language'] || 'en';
@@ -80,7 +87,7 @@ router.get('/articles', (req, res) => {
     res.json({ success: true, data: sorted });
 });
 
-// Endpoint to get featured articles
+// Endpoint to get featured articles (must be above /:slug to avoid param capture)
 router.get('/articles/featured', (req, res) => {
     const lang = getLanguage(req);
     const articles = getData(lang).articles;
@@ -104,6 +111,123 @@ router.get('/all', (req, res) => {
     const lang = getLanguage(req);
     const data = getData(lang);
     res.json({ success: true, data });
+});
+
+// Endpoint to get notifications
+router.get('/notifications', (req, res) => {
+    try {
+        const lang = getLanguage(req);
+        const notifications = getData(lang).notifications.map(n => ({
+            ...n,
+            read: notificationReadState[n.id] !== undefined ? notificationReadState[n.id] : n.read
+        }));
+        res.json({ success: true, data: notifications });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint to mark notifications as read
+router.post('/notifications/read', (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!Array.isArray(ids)) {
+            return res.status(400).json({ success: false, error: 'Request body must include an ids array' });
+        }
+
+        // Validate each id to prevent prototype pollution
+        const forbiddenKeys = ['__proto__', 'constructor', 'prototype'];
+        const validIds = [];
+        for (const id of ids) {
+            const idStr = String(id);
+            if (forbiddenKeys.includes(idStr)) {
+                return res.status(400).json({ success: false, error: `Invalid id value: ${idStr}` });
+            }
+            if (typeof id === 'number' && (id <= 0 || !Number.isInteger(id))) {
+                return res.status(400).json({ success: false, error: 'ids must be positive integers or valid string identifiers' });
+            }
+            if (typeof id !== 'number' && typeof id !== 'string') {
+                return res.status(400).json({ success: false, error: 'Each id must be a number or string' });
+            }
+            validIds.push(id);
+        }
+
+        validIds.forEach(id => { notificationReadState[id] = true; });
+        res.json({ success: true, data: { readCount: validIds.length } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint to get all todos
+router.get('/todos', (req, res) => {
+    try {
+        res.json({ success: true, data: todos });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint to create a todo
+router.post('/todos', (req, res) => {
+    try {
+        const { title, completed } = req.body;
+        if (!title || typeof title !== 'string' || title.trim() === '') {
+            return res.status(400).json({ success: false, error: 'title is required and must be a non-empty string' });
+        }
+        const todo = {
+            id: todoIdCounter++,
+            title: title.trim(),
+            completed: completed === true ? true : false,
+            createdAt: new Date().toISOString()
+        };
+        todos.push(todo);
+        res.json({ success: true, data: todo });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint to update a todo
+router.put('/todos/:id', (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const todo = todos.find(t => t.id === id);
+        if (!todo) {
+            return res.status(404).json({ success: false, error: 'Todo not found' });
+        }
+        const { title, completed } = req.body;
+        if (title === undefined && completed === undefined) {
+            return res.status(400).json({ success: false, error: 'At least one of title or completed must be provided' });
+        }
+        if (title !== undefined) {
+            if (typeof title !== 'string' || title.trim() === '') {
+                return res.status(400).json({ success: false, error: 'title must be a non-empty string' });
+            }
+            todo.title = title.trim();
+        }
+        if (completed !== undefined) {
+            todo.completed = completed;
+        }
+        res.json({ success: true, data: todo });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint to delete a todo
+router.delete('/todos/:id', (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const index = todos.findIndex(t => t.id === id);
+        if (index === -1) {
+            return res.status(404).json({ success: false, error: 'Todo not found' });
+        }
+        todos.splice(index, 1);
+        res.json({ success: true, data: { deleted: true } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 export default router;

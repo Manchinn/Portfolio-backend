@@ -472,6 +472,31 @@ const portfolioData = {
         }
     ],
 
+    // Notifications - separate for each language
+    notifications: {
+        en: [
+            { id: 1, type: "success", title: "Portfolio Launched!", message: "My personal portfolio website is now live. Check it out and feel free to reach out!", date: "2026-03-15", read: false },
+            { id: 2, type: "info", title: "New Article Published", message: "I just published a new article: 'Portfolio Website Techniques Overview'. Give it a read!", date: "2026-03-02", read: false },
+            { id: 3, type: "success", title: "New Project Added", message: "CS Logbook System has been added to the projects section. Check out the details and demo!", date: "2025-12-20", read: false },
+            { id: 4, type: "warning", title: "Site Maintenance", message: "Brief maintenance scheduled on March 20, 2026. The site may be unavailable for a short period.", date: "2026-03-10", read: false },
+            { id: 5, type: "info", title: "Open to Opportunities", message: "I am currently open to new job opportunities and freelance projects. Feel free to contact me!", date: "2026-01-01", read: false }
+        ],
+        th: [
+            { id: 1, type: "success", title: "เปิดตัว Portfolio แล้ว!", message: "เว็บ Portfolio ส่วนตัวของผมเปิดตัวแล้ว ลองเข้าชมและติดต่อผมได้เลย!", date: "2026-03-15", read: false },
+            { id: 2, type: "info", title: "บทความใหม่เผยแพร่แล้ว", message: "ผมเพิ่งเผยแพร่บทความใหม่: 'ภาพรวมเทคนิคการสร้างเว็บ Portfolio' ลองอ่านดูนะครับ!", date: "2026-03-02", read: false },
+            { id: 3, type: "success", title: "เพิ่มโปรเจคใหม่แล้ว", message: "CS Logbook System ถูกเพิ่มเข้าในส่วนโปรเจคแล้ว ลองดูรายละเอียดและ demo ได้เลย!", date: "2025-12-20", read: false },
+            { id: 4, type: "warning", title: "ปิดปรับปรุงระบบ", message: "มีกำหนดปิดปรับปรุงระบบในวันที่ 20 มีนาคม 2026 เว็บอาจไม่สามารถเข้าใช้งานได้ชั่วคราว", date: "2026-03-10", read: false },
+            { id: 5, type: "info", title: "พร้อมรับโอกาสใหม่", message: "ผมพร้อมรับงานประจำและงาน freelance ใหม่ๆ ติดต่อผมได้เลยนะครับ!", date: "2026-01-01", read: false }
+        ],
+        zh: [
+            { id: 1, type: "success", title: "作品集已上线！", message: "我的个人作品集网站现已正式上线，欢迎访问并与我联系！", date: "2026-03-15", read: false },
+            { id: 2, type: "info", title: "新文章已发布", message: "我刚刚发布了一篇新文章：《作品集网站技术概览》，欢迎阅读！", date: "2026-03-02", read: false },
+            { id: 3, type: "success", title: "新项目已添加", message: "CS日志系统已添加到项目板块，欢迎查看详情和演示！", date: "2025-12-20", read: false },
+            { id: 4, type: "warning", title: "网站维护通知", message: "计划于2026年3月20日进行短暂维护，届时网站可能暂时无法访问。", date: "2026-03-10", read: false },
+            { id: 5, type: "info", title: "欢迎工作机会", message: "我目前正在寻找新的工作机会和自由职业项目，欢迎随时联系我！", date: "2026-01-01", read: false }
+        ]
+    },
+
     // Articles/Blog - separate for each language
     articles: {
         en: [
@@ -881,6 +906,7 @@ export const getData = (lang = 'en') => {
         experiences: portfolioData.experiences[language] || portfolioData.experiences.en,
         projects: portfolioData.projects[language] || portfolioData.projects.en,
         articles: portfolioData.articles[language] || portfolioData.articles.en,
+        notifications: portfolioData.notifications[language] || portfolioData.notifications.en,
         socials: portfolioData.socials
     }
 }

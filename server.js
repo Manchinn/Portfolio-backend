@@ -4,6 +4,8 @@
 
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -21,6 +23,11 @@ const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, 'public')
 // Middleware
 // ============================================
 
+// Security headers (configured to work alongside CORS)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}))
+
 // CORS Configuration
 app.use(cors({
   origin: FRONTEND_URL,
@@ -28,6 +35,16 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }))
+
+// Rate limiting for API routes (100 requests per 15 minutes per IP)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests, please try again later.' }
+})
+app.use('/api', apiLimiter)
 
 // Parse JSON
 app.use(express.json())
@@ -124,14 +141,6 @@ app.use((err, req, res, next) => {
     success: false,
     error: 'Internal server error'
   })
-})
-
-// ============================================
-// Start Server
-// ============================================
-
-app.listen(PORT, () => {
-  console.log(`Portfolio Backend API is running on port ${PORT} (frontend origin: ${FRONTEND_URL})`)
 })
 
 export default app
