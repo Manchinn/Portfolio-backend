@@ -42,7 +42,7 @@ const apiLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, error: 'Too many requests, please try again later.' }
+  message: { success: false, message: 'Too many requests, please try again later.' }
 })
 app.use('/api', apiLimiter)
 
@@ -79,7 +79,7 @@ app.post('/api/contact', async (req, res) => {
     if (!name || !email || !message) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: name, email, message'
+        message: 'Missing required fields: name, email, message'
       })
     }
 
@@ -88,7 +88,7 @@ app.post('/api/contact', async (req, res) => {
     if (!emailRegex.test(email)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid email format'
+        message: 'Invalid email format'
       })
     }
 
@@ -105,7 +105,7 @@ app.post('/api/contact', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message
+      message: 'Internal server error'
     })
   }
 })
@@ -130,7 +130,7 @@ app.get('/api/health', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    error: `Route ${req.method} ${req.path} not found`
+    message: `Route ${req.method} ${req.path} not found`
   })
 })
 
@@ -139,7 +139,7 @@ app.use((err, req, res, next) => {
   console.error('Server error:', err)
   res.status(500).json({
     success: false,
-    error: 'Internal server error'
+    message: 'Internal server error'
   })
 })
 

@@ -62,9 +62,13 @@ router.get('/projects', (req, res) => {
 router.get('/projects/:id', (req, res) => {
     const lang = getLanguage(req);
     const projects = getData(lang).projects;
-    const project = projects.find(p => p.id === parseInt(req.params.id));
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+        return res.status(400).json({ success: false, message: 'Invalid ID' });
+    }
+    const project = projects.find(p => p.id === id);
     if (!project) {
-        return res.status(404).json({ success: false, error: 'Project not found' });
+        return res.status(404).json({ success: false, message: 'Project not found' });
     }
     res.json({ success: true, data: project });
 });
@@ -101,7 +105,7 @@ router.get('/articles/:slug', (req, res) => {
     const articles = getData(lang).articles;
     const article = articles.find(a => a.slug === req.params.slug);
     if (!article) {
-        return res.status(404).json({ success: false, error: 'Article not found' });
+        return res.status(404).json({ success: false, message: 'Article not found' });
     }
     res.json({ success: true, data: article });
 });
@@ -123,7 +127,7 @@ router.get('/notifications', (req, res) => {
         }));
         res.json({ success: true, data: notifications });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
@@ -132,7 +136,7 @@ router.post('/notifications/read', (req, res) => {
     try {
         const { ids } = req.body;
         if (!Array.isArray(ids)) {
-            return res.status(400).json({ success: false, error: 'Request body must include an ids array' });
+            return res.status(400).json({ success: false, message: 'Request body must include an ids array' });
         }
 
         // Validate each id to prevent prototype pollution
@@ -141,13 +145,13 @@ router.post('/notifications/read', (req, res) => {
         for (const id of ids) {
             const idStr = String(id);
             if (forbiddenKeys.includes(idStr)) {
-                return res.status(400).json({ success: false, error: `Invalid id value: ${idStr}` });
+                return res.status(400).json({ success: false, message: `Invalid id value: ${idStr}` });
             }
             if (typeof id === 'number' && (id <= 0 || !Number.isInteger(id))) {
-                return res.status(400).json({ success: false, error: 'ids must be positive integers or valid string identifiers' });
+                return res.status(400).json({ success: false, message: 'ids must be positive integers or valid string identifiers' });
             }
             if (typeof id !== 'number' && typeof id !== 'string') {
-                return res.status(400).json({ success: false, error: 'Each id must be a number or string' });
+                return res.status(400).json({ success: false, message: 'Each id must be a number or string' });
             }
             validIds.push(id);
         }
@@ -155,7 +159,7 @@ router.post('/notifications/read', (req, res) => {
         validIds.forEach(id => { notificationReadState[id] = true; });
         res.json({ success: true, data: { readCount: validIds.length } });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
@@ -164,7 +168,7 @@ router.get('/todos', (req, res) => {
     try {
         res.json({ success: true, data: todos });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
@@ -173,7 +177,7 @@ router.post('/todos', (req, res) => {
     try {
         const { title, completed } = req.body;
         if (!title || typeof title !== 'string' || title.trim() === '') {
-            return res.status(400).json({ success: false, error: 'title is required and must be a non-empty string' });
+            return res.status(400).json({ success: false, message: 'title is required and must be a non-empty string' });
         }
         const todo = {
             id: todoIdCounter++,
@@ -184,7 +188,7 @@ router.post('/todos', (req, res) => {
         todos.push(todo);
         res.json({ success: true, data: todo });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
@@ -192,26 +196,29 @@ router.post('/todos', (req, res) => {
 router.put('/todos/:id', (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, message: 'Invalid ID' });
+        }
         const todo = todos.find(t => t.id === id);
         if (!todo) {
-            return res.status(404).json({ success: false, error: 'Todo not found' });
+            return res.status(404).json({ success: false, message: 'Todo not found' });
         }
         const { title, completed } = req.body;
         if (title === undefined && completed === undefined) {
-            return res.status(400).json({ success: false, error: 'At least one of title or completed must be provided' });
+            return res.status(400).json({ success: false, message: 'At least one of title or completed must be provided' });
         }
         if (title !== undefined) {
             if (typeof title !== 'string' || title.trim() === '') {
-                return res.status(400).json({ success: false, error: 'title must be a non-empty string' });
+                return res.status(400).json({ success: false, message: 'title must be a non-empty string' });
             }
             todo.title = title.trim();
         }
         if (completed !== undefined) {
-            todo.completed = completed;
+            todo.completed = Boolean(completed);
         }
         res.json({ success: true, data: todo });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
@@ -219,14 +226,17 @@ router.put('/todos/:id', (req, res) => {
 router.delete('/todos/:id', (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, message: 'Invalid ID' });
+        }
         const index = todos.findIndex(t => t.id === id);
         if (index === -1) {
-            return res.status(404).json({ success: false, error: 'Todo not found' });
+            return res.status(404).json({ success: false, message: 'Todo not found' });
         }
         todos.splice(index, 1);
         res.json({ success: true, data: { deleted: true } });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
