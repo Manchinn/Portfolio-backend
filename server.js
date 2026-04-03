@@ -19,6 +19,11 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, 'public')
 
+// Parse allowed origins from env (comma-separated) with FRONTEND_URL as fallback
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : [FRONTEND_URL]
+
 // ============================================
 // Middleware
 // ============================================
@@ -30,7 +35,14 @@ app.use(helmet({
 
 // CORS Configuration
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. server-to-server, curl)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
