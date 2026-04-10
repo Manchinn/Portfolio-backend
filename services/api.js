@@ -2,8 +2,16 @@
 
 import express from 'express';
 import portfolioData, { getData } from '../data/portfolioData.js';
+import { generateContent } from './claude.js';
+import { postToFacebook } from './facebook.js';
+import { postToThreads } from './threads.js';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
+import { join } from 'path';
 
 const router = express.Router();
+
+const CONTENT_DIR = join(process.cwd(), 'data', 'content');
+if (!existsSync(CONTENT_DIR)) mkdirSync(CONTENT_DIR, { recursive: true });
 
 // In-memory store for notification read state (Object.create(null) to prevent prototype pollution)
 const notificationReadState = Object.create(null);
@@ -238,6 +246,116 @@ router.delete('/todos/:id', (req, res) => {
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
+});
+
+// ============ Content Pipeline Routes ============
+
+// Generate content from article text
+router.post('/content/generate', async (req, res) => {
+  try {
+    const { article, styleGuide } = req.body;
+    if (!article) return res.status(400).json({ error: 'article is required' });
+
+    const content = await generateContent(article, styleGuide || '');
+
+    const id = `content-${Date.now()}`;
+    const filePath = join(CONTENT_DIR, `${id}.json`);
+    const record = { id, created: new Date().toISOString(), status: 'draft', ...content };
+    writeFileSync(filePath, JSON.stringify(record, null, 2));
+
+    res.json({ success: true, data: record });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// List generated content
+router.get('/content', (req, res) => {
+  if (!existsSync(CONTENT_DIR)) return res.json({ success: true, data: [] });
+  const files = readdirSync(CONTENT_DIR).filter(f => f.endsWith('.json'));
+  const items = files.map(f => JSON.parse(readFileSync(join(CONTENT_DIR, f), 'utf-8')));
+  items.sort((a, b) => new Date(b.created) - new Date(a.created));
+  res.json({ success: true, data: items });
+});
+
+// Get single content
+router.get('/content/:id', (req, res) => {
+  const filePath = join(CONTENT_DIR, `${req.params.id}.json`);
+  if (!existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+  res.json({ success: true, data: JSON.parse(readFileSync(filePath, 'utf-8')) });
+});
+
+// Publish to Facebook
+router.post('/content/:id/publish/facebook', async (req, res) => {
+  try {
+    const filePath = join(CONTENT_DIR, `${req.params.id}.json`);
+    if (!existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+
+    const record = JSON.parse(readFileSync(filePath, 'utf-8'));
+    const result = await postToFacebook(record.facebook.text, record.facebook.hashtags);
+
+    record.facebook.published = true;
+    record.facebook.post_id = result.id;
+    record.facebook.post_url = result.url;
+    writeFileSync(filePath, JSON.stringify(record, null, 2));
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Publish to Threads
+router.post('/content/:id/publish/threads', async (req, res) => {
+  try {
+    const filePath = join(CONTENT_DIR, `${req.params.id}.json`);
+    if (!existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+
+    const record = JSON.parse(readFileSync(filePath, 'utf-8'));
+    const result = await postToThreads(record.threads.text, record.threads.hashtags);
+
+    record.threads.published = true;
+    record.threads.post_id = result.id;
+    record.threads.post_url = result.url;
+    writeFileSync(filePath, JSON.stringify(record, null, 2));
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Publish to Blog (generate Article object)
+router.post('/content/:id/publish/blog', async (req, res) => {
+  try {
+    const filePath = join(CONTENT_DIR, `${req.params.id}.json`);
+    if (!existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+
+    const record = JSON.parse(readFileSync(filePath, 'utf-8'));
+    const blog = record.blog;
+
+    const article = {
+      id: Date.now(),
+      slug: blog.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, ''),
+      title: blog.title,
+      excerpt: blog.meta_description,
+      content: blog.content,
+      coverImage: `https://placehold.co/800x400/3b82f6/ffffff?text=${encodeURIComponent(blog.title.slice(0, 20))}`,
+      tags: blog.tags,
+      category: 'AI & Technology',
+      readTime: `${Math.ceil(blog.content.split(/\s+/).length / 200)} min read`,
+      date: new Date().toISOString().split('T')[0],
+      featured: false,
+    };
+
+    record.blog.published = true;
+    record.blog.slug = article.slug;
+    writeFileSync(filePath, JSON.stringify(record, null, 2));
+
+    res.json({ success: true, data: article });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;
